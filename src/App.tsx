@@ -1,8 +1,15 @@
-import { LoginPage } from "./pages"
+import { BrowserRouter, Route, Routes } from "react-router-dom"
+import { LoginPage, Dashboard } from "./pages"
+
 
 function App() {
   return (
-    <LoginPage></LoginPage>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<LoginPage/>}/>
+        <Route path="/dashboard" element={<Dashboard/>}/>
+      </Routes>
+    </BrowserRouter>
   )
 }
 
