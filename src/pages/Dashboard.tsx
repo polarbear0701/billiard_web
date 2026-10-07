@@ -4,14 +4,6 @@ import { getAllTables } from "../services/table"
 import { getErrorMessage } from "../services/http"
 import { type Table } from "../services/table"
 
-// interface Table {
-//     tableCode: string
-//     tableType: string
-//     tableStatus: TableStatus
-//     pricePerHour: number
-// }
-
-
 export default function Dashboard() {
     const [tables, setTables] = useState<Table[]>([])
     const [isLoading, setIsLoading] = useState(true)

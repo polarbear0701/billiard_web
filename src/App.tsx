@@ -1,5 +1,5 @@
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom"
-import { LoginPage, Dashboard } from "./pages"
+import { LoginPage, Dashboard, Tables } from "./pages"
 import PageLayout from "./components/PageLayout"
 import type { ReactNode } from "react"
 
@@ -9,13 +9,14 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage/>}/>
         
-        <Route path="/dashboard" element={
+        <Route path="/" element={
           <ProtectedRoute>
             <PageLayout/>
           </ProtectedRoute>
           }
         >
           <Route path="/dashboard" element={<Dashboard/>}/>
+          <Route path="/table" element={<Tables/>}/>
         </Route>
       </Routes>
     </BrowserRouter>

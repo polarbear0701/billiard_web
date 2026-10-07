@@ -20,13 +20,13 @@ export default function PageLayout() {
                         tabIndex={-1}
                         className="menu menu-lg dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow">
                         <li>
-                            <button type="button" onClick={() => navigate("/dashboard")}>
-                                Dashboard
+                            <button type="button" onClick={() => navigate("/table")}>
+                                Table
                             </button>
                         </li>
                         <li>
-                            <button type="button" onClick={() => {}}>
-                                Management
+                            <button type="button" onClick={() => navigate("/dashboard")}>
+                                Dashboard
                             </button>
                         </li>
                         <li>
