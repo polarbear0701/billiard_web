@@ -4,6 +4,13 @@ export const http = axios.create(
     {baseURL: import.meta.env.VITE_API_URL}
 )
 
+export interface ApiResponse<T> {
+    code: number
+    message: string
+    data: T
+    timestamp: string
+}
+
 http.interceptors.request.use ((config) => {
     const token = localStorage.getItem("accessToken");
     if (token) config.headers.Authorization = `Bearer ${token}`

@@ -1,11 +1,4 @@
-import { http } from "./http"
-
-interface ApiResponse<T> {
-    code: number
-    message: string
-    data: T
-    timestamp: string
-}
+import { http, type ApiResponse } from "./http"
 
 interface LoginData {
     accessToken: string
@@ -16,7 +9,10 @@ export async function login(
     username: string,
     password: string
 ) {
-    const res = await http.post<ApiResponse<LoginData>> ("/auth/login", {username, password})
+    const res = await http.post<ApiResponse<LoginData>> (
+        "/auth/login",
+        {username, password}
+    )
     return res.data.data
 }
 

@@ -3,7 +3,6 @@ import { logout } from "../services/auth";
 
 export default function PageLayout() {
     const navigate = useNavigate()
-
     const handleLogout = () => {
         logout()
         navigate("/login", {replace: true})
@@ -20,9 +19,28 @@ export default function PageLayout() {
                     <ul
                         tabIndex={-1}
                         className="menu menu-lg dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow">
-                        <li><a>Homepage</a></li>
-                        <li><a>Portfolio</a></li>
-                        <li><a>About</a></li>
+                        <li>
+                            <button type="button" onClick={() => navigate("/dashboard")}>
+                                Dashboard
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button" onClick={() => {}}>
+                                Management
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button" onClick={() => {}}>
+                                Stock
+                            </button>
+                        </li>
+                        <li>
+                            <button
+                                type="button"
+                                onClick={handleLogout}
+
+                            >Logout</button>
+                        </li>
                     </ul>
                     </div>
                 </div>
