@@ -1,35 +1,33 @@
 import { useState, type ChangeEvent, type SubmitEvent } from "react"
 import { InputBox, Button } from "../components"
 import { useNavigate } from "react-router-dom";
-
-function sleep(n = 0): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, n))
-}
+import { login } from "../services/auth";
+import { getErrorMessage } from "../services/http";
 
 export default function LoginPage() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-
     const isDisabled = username.trim() === "" || password.trim() === ""
-
     const [isLoading, setIsLoading] = useState(false)
-
+    const [error, setError] = useState("")
     const navigate = useNavigate();
 
-    async function waitSeconds() {
-        await sleep(5000)
-    }
 
     const signInAction = async (e: SubmitEvent<HTMLFormElement>) => {
         e.preventDefault()
         setIsLoading(true)
+        setError("")
         try {
-            await waitSeconds();
-        } finally {
+            const {accessToken, refreshToken} = await login(username, password)
+            localStorage.setItem("accessToken", accessToken)
+            localStorage.setItem("refreshToken", refreshToken)
+            navigate("/dashboard", {replace: true})
+        } catch (err) {
+            setError(getErrorMessage(err))
+        }
+        finally {
             setIsLoading(false)
         }
-
-        navigate("/dashboard");
     }
 
     return (
@@ -56,6 +54,8 @@ export default function LoginPage() {
                     isDisabled={isDisabled}
                     isLoading={isLoading}
                 ></Button>
+
+                {error && <p className="text-red-500">{error}</p>}
             </div>
         </form>
     )
