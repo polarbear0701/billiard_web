@@ -6,6 +6,7 @@ import LanguageToggle from "./LanguageToggle"
 const navItems = [
     { key: "dashboard", to: "/dashboard" },
     { key: "tables", to: "/table" },
+    { key: "stock", to: "/stock" },
 ] as const
 
 export default function PageLayout() {

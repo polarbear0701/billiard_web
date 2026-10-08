@@ -1,5 +1,5 @@
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom"
-import { LoginPage, Dashboard, Tables } from "./pages"
+import { LoginPage, Dashboard, Tables, Stock } from "./pages"
 import PageLayout from "./components/PageLayout"
 import type { ReactNode } from "react"
 
@@ -17,6 +17,7 @@ function App() {
         >
           <Route path="/dashboard" element={<Dashboard/>}/>
           <Route path="/table" element={<Tables/>}/>
+          <Route path="/stock" element={<Stock/>}/>
         </Route>
       </Routes>
     </BrowserRouter>
