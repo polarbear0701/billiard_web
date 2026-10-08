@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { TableCard } from "../components"
-import { getAllTables, type Table, type TableStatus } from "../services/table"
+import { formatTableCode, getAllTables, type Table, type TableStatus } from "../services/table"
 import { getErrorMessage } from "../services/http"
 
 const statusStyles: Record<TableStatus, string> = {
@@ -58,8 +58,8 @@ export default function Tables() {
     }
 
     return (
-        <div className="p-6">
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div>
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                 {tables.map((table) => (
                     <TableCard
                         key={table.tableCode}
@@ -93,13 +93,9 @@ export default function Tables() {
                             </h3>
 
                             <div className="mt-3 flex items-center gap-4 rounded-2xl bg-slate-50 p-4">
-                                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-3xl">
-                                    🎱
-                                </div>
-
                                 <div className="min-w-0 flex-1">
                                     <p className="truncate text-lg font-semibold text-slate-900">
-                                        {selectedTable.tableCode}
+                                        {formatTableCode(selectedTable.tableCode)}
                                     </p>
                                     <p className="text-sm text-slate-500">
                                         {tableTypeLabels[selectedTable.tableType] ??

@@ -1,4 +1,4 @@
-import { type Table, type TableStatus } from "../services/table"
+import { formatTableCode, type Table, type TableStatus } from "../services/table"
 
 interface TableCardProps {
     tableObject: Table
@@ -33,34 +33,29 @@ export default function TableCard({
         <button
             type="button"
             onClick={onClick}
-            className="flex aspect-[1.55] w-full max-w-sm flex-col rounded-2xl bg-white p-5 text-left shadow-sm transition hover:shadow-md"
+            className="flex w-full flex-col gap-6 rounded-2xl bg-white p-5 text-left shadow-sm transition hover:shadow-md"
         >
-            <div className="flex items-start justify-between gap-4">
-                <div className="flex h-12 w-16 items-center justify-center rounded-xl bg-orange-50 text-2xl">
-                    🎱
-                </div>
-
-                <span className={`rounded-full px-3 py-1 text-sm font-medium ${statusStyle}`}>
-                    {tableObject.tableStatus}
-                </span>
-            </div>
-
-            <div className="mt-auto flex items-end justify-between gap-4">
-                <div>
-                    <h2 className="text-lg font-semibold">
-                        {tableObject.tableCode}
+            <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                    <h2 className="truncate text-lg font-semibold text-slate-900">
+                        {formatTableCode(tableObject.tableCode)}
                     </h2>
 
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-slate-500">
                         {tableTypeLabels[tableObject.tableType] ??
                             tableObject.tableType}
                     </p>
                 </div>
 
-                <p className="text-lg font-semibold text-orange-700">
-                    {formattedPrice}
-                </p>
+                <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${statusStyle}`}>
+                    {tableObject.tableStatus}
+                </span>
             </div>
+
+            <p className="text-lg font-semibold text-amber-600">
+                {formattedPrice}
+                <span className="text-sm font-normal text-slate-400"> / hour</span>
+            </p>
         </button>
     )
 }

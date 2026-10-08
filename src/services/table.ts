@@ -16,3 +16,9 @@ export async function getAllTables(): Promise<Table[]> {
 
     return res.data.data
 }
+
+// "TBL0007" -> "Table 7"; falls back to the raw code if it doesn't match.
+export function formatTableCode(code: string): string {
+    const match = /^TBL0*(\d+)$/i.exec(code)
+    return match ? `Table ${match[1]}` : code
+}
