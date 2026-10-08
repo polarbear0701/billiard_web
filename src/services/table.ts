@@ -39,7 +39,7 @@ export async function updateTablePrice(
 }
 
 // "TBL0007" -> "Table 7"; falls back to the raw code if it doesn't match.
-export function formatTableCode(code: string): string {
+export function formatTableCode(code: string, label = "Table"): string {
     const match = /^TBL0*(\d+)$/i.exec(code)
-    return match ? `Table ${match[1]}` : code
+    return match ? `${label} ${match[1]}` : code
 }

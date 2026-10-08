@@ -1,13 +1,16 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
 import { logout } from "../services/auth"
+import { useLanguage } from "../i18n/useLanguage"
+import LanguageToggle from "./LanguageToggle"
 
 const navItems = [
-    { label: "Dashboard", to: "/dashboard", title: "Dashboard", subtitle: "Overview of your store" },
-    { label: "Tables", to: "/table", title: "Tables", subtitle: "Manage tables and sessions" },
-]
+    { key: "dashboard", to: "/dashboard" },
+    { key: "tables", to: "/table" },
+] as const
 
 export default function PageLayout() {
     const navigate = useNavigate()
+    const { t } = useLanguage()
     const { pathname } = useLocation()
     const current = navItems.find((item) => pathname.startsWith(item.to))
 
@@ -29,7 +32,7 @@ export default function PageLayout() {
                 <header className="flex items-center gap-3 rounded-2xl bg-white px-5 py-4 shadow-sm">
                     <label
                         htmlFor="nav-drawer"
-                        aria-label="Open menu"
+                        aria-label={t.nav.openMenu}
                         className="btn btn-ghost btn-square btn-sm lg:hidden"
                     >
                         <svg
@@ -45,9 +48,15 @@ export default function PageLayout() {
 
                     <div>
                         <h1 className="text-xl font-semibold text-slate-900">
-                            {current?.title ?? "Bida 298"}
+                            {current ? t.nav[current.key] : t.nav.brand}
                         </h1>
-                        <p className="text-sm text-slate-500">{current?.subtitle}</p>
+                        <p className="text-sm text-slate-500">
+                            {current ? t.pages[`${current.key}Subtitle`] : ""}
+                        </p>
+                    </div>
+
+                    <div className="ml-auto">
+                        <LanguageToggle />
                     </div>
                 </header>
 
@@ -57,15 +66,15 @@ export default function PageLayout() {
             </div>
 
             <div className="drawer-side z-40">
-                <label htmlFor="nav-drawer" aria-label="Close menu" className="drawer-overlay" />
+                <label htmlFor="nav-drawer" aria-label={t.nav.closeMenu} className="drawer-overlay" />
 
                 <aside className="flex h-full min-h-screen w-64 flex-col overflow-y-auto border-r border-slate-200 bg-white p-4">
                     <div className="px-3 py-4 text-xl font-semibold tracking-tight text-emerald-800">
-                        Bida 298
+                        {t.nav.brand}
                     </div>
 
                     <p className="mt-4 px-3 text-xs font-medium uppercase tracking-wide text-slate-400">
-                        Menu
+                        {t.nav.menu}
                     </p>
 
                     <nav className="mt-2 flex flex-col gap-1">
@@ -82,7 +91,7 @@ export default function PageLayout() {
                                     }`
                                 }
                             >
-                                {item.label}
+                                {t.nav[item.key]}
                             </NavLink>
                         ))}
                     </nav>
@@ -93,7 +102,7 @@ export default function PageLayout() {
                             onClick={handleLogout}
                             className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition hover:bg-slate-100"
                         >
-                            Logout
+                            {t.nav.logout}
                         </button>
                     </div>
                 </aside>
