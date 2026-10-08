@@ -59,7 +59,7 @@ export default function PageLayout() {
             <div className="drawer-side z-40">
                 <label htmlFor="nav-drawer" aria-label="Close menu" className="drawer-overlay" />
 
-                <aside className="flex min-h-full w-64 flex-col bg-white p-4 lg:m-6 lg:mr-0 lg:min-h-0 lg:rounded-2xl lg:shadow-sm">
+                <aside className="flex h-full min-h-screen w-64 flex-col overflow-y-auto border-r border-slate-200 bg-white p-4">
                     <div className="px-3 py-4 text-xl font-semibold tracking-tight text-emerald-800">
                         Bida 298
                     </div>
