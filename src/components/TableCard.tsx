@@ -1,5 +1,10 @@
 import { type Table, type TableStatus } from "../services/table"
 
+interface TableCardProps {
+    tableObject: Table
+    onClick: () => void
+}
+
 const statusStyles: Record<TableStatus, string> = {
     AVAILABLE: "bg-emerald-50 text-emerald-700",
     OCCUPIED: "bg-rose-50 text-rose-700",
@@ -12,8 +17,12 @@ const tableTypeLabels: Record<string, string> = {
     LIBRE: "Libre",
 }
 
-export default function TableCard(tableObject: Table) {
+export default function TableCard({
+    tableObject,
+    onClick,
+}: TableCardProps) {
     const statusStyle = statusStyles[tableObject.tableStatus]
+
     const formattedPrice = new Intl.NumberFormat("vi-VN", {
         style: "currency",
         currency: "VND",
@@ -21,7 +30,11 @@ export default function TableCard(tableObject: Table) {
     }).format(tableObject.pricePerHour)
 
     return (
-        <article className="flex aspect-[1.55] w-full max-w-sm flex-col rounded-2xl bg-white p-5 shadow-sm">
+        <button
+            type="button"
+            onClick={onClick}
+            className="flex aspect-[1.55] w-full max-w-sm flex-col rounded-2xl bg-white p-5 text-left shadow-sm transition hover:shadow-md"
+        >
             <div className="flex items-start justify-between gap-4">
                 <div className="flex h-12 w-16 items-center justify-center rounded-xl bg-orange-50 text-2xl">
                     🎱
@@ -37,8 +50,10 @@ export default function TableCard(tableObject: Table) {
                     <h2 className="text-lg font-semibold">
                         {tableObject.tableCode}
                     </h2>
+
                     <p className="mt-1 text-sm text-gray-500">
-                        {tableTypeLabels[tableObject.tableType] ?? tableObject.tableType}
+                        {tableTypeLabels[tableObject.tableType] ??
+                            tableObject.tableType}
                     </p>
                 </div>
 
@@ -46,6 +61,6 @@ export default function TableCard(tableObject: Table) {
                     {formattedPrice}
                 </p>
             </div>
-        </article>
+        </button>
     )
 }
