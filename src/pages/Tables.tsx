@@ -156,6 +156,7 @@ export default function Tables() {
                     table={selectedTable}
                     onClose={() => setSelectedTable(null)}
                     onPriceUpdated={handlePriceUpdated}
+                    onSessionChanged={() => setReloadKey((key) => key + 1)}
                 />
             )}
 
