@@ -27,3 +27,23 @@
         to { opacity: 0; transform: translateY(8px) scale(0.97); }
     }
 }
+
+/* Print only the invoice receipt when the user prints from the invoice modal. */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    #invoice-receipt,
+    #invoice-receipt * {
+        visibility: visible;
+    }
+
+    #invoice-receipt {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 24px;
+    }
+}

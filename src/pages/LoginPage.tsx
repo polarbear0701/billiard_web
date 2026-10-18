@@ -1,10 +1,13 @@
 import { useState, type ChangeEvent, type SubmitEvent } from "react"
 import { InputBox, Button } from "../components"
-import { useNavigate } from "react-router-dom";
-import { login } from "../services/auth";
+import { Navigate, useNavigate } from "react-router-dom";
+import { hasActiveSession, login } from "../services/auth";
+import { useLanguage } from "../i18n/useLanguage";
+import LanguageToggle from "../components/LanguageToggle";
 import { getErrorMessage } from "../services/http";
 
 export default function LoginPage() {
+    const { t } = useLanguage()
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const isDisabled = username.trim() === "" || password.trim() === ""
@@ -21,7 +24,7 @@ export default function LoginPage() {
             const {accessToken, refreshToken} = await login(username, password)
             localStorage.setItem("accessToken", accessToken)
             localStorage.setItem("refreshToken", refreshToken)
-            navigate("/dashboard", {replace: true})
+            navigate("/table", {replace: true})
         } catch (err) {
             setError(getErrorMessage(err))
         }
@@ -30,27 +33,34 @@ export default function LoginPage() {
         }
     }
 
+    if (hasActiveSession()) {
+        return <Navigate to="/table" replace />
+    }
+
     return (
         <form onSubmit={signInAction}>
             <div className="flex flex-col items-center justify-center min-h-screen">
-                <title>Login</title>
-                <h1 className="font-bold text-xl">Login</h1>
+                <div className="absolute right-4 top-4">
+                    <LanguageToggle />
+                </div>
+                <title>{t.login.title}</title>
+                <h1 className="font-bold text-xl">{t.login.title}</h1>
                 <InputBox
-                    placeholder="Username"
+                    placeholder={t.login.username}
                     type="text"
                     value={username}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
                 ></InputBox>
 
                 <InputBox
-                    placeholder="Password"
+                    placeholder={t.login.password}
                     type="password"
                     value={password}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                 ></InputBox>
 
                 <Button
-                    text="Sign In"
+                    text={t.login.submit}
                     isDisabled={isDisabled}
                     isLoading={isLoading}
                 ></Button>

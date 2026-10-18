@@ -22,12 +22,19 @@ const refreshClient = axios.create({ baseURL: import.meta.env.VITE_API_URL })
 // Shared by all requests that hit a 401 at the same time, so only one refresh is sent.
 let refreshPromise: Promise<string> | null = null
 
+// Replaceable so tests (and any router-aware code) can handle "session expired" themselves.
+export const sessionEvents = {
+    onExpired: () => {
+        if (window.location.pathname !== "/login") {
+            window.location.assign("/login")
+        }
+    },
+}
+
 function clearSessionAndRedirect(): never {
     localStorage.removeItem("accessToken")
     localStorage.removeItem("refreshToken")
-    if (window.location.pathname !== "/login") {
-        window.location.assign("/login")
-    }
+    sessionEvents.onExpired()
     throw new Error("Session expired")
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
-import { CreateTableModal, SessionModal, TableCard } from "../components"
+import { CreateTableModal, InvoiceModal, SessionModal, TableCard } from "../components"
 import { formatTableCode, getAllTables, type Table, type TableStatus } from "../services/table"
+import { type Invoice } from "../services/invoice"
 import { getErrorMessage } from "../services/http"
 import { useLanguage } from "../i18n/useLanguage"
 
@@ -14,6 +15,7 @@ export default function Tables() {
     const [statusFilter, setStatusFilter] = useState<TableStatus | "ALL">("ALL")
     const [reloadKey, setReloadKey] = useState(0)
     const [isCreating, setIsCreating] = useState(false)
+    const [invoiceToPay, setInvoiceToPay] = useState<Invoice | null>(null)
 
     useEffect(() => {
         let isCancelled = false
@@ -157,6 +159,14 @@ export default function Tables() {
                     onClose={() => setSelectedTable(null)}
                     onPriceUpdated={handlePriceUpdated}
                     onSessionChanged={() => setReloadKey((key) => key + 1)}
+                    onCheckedOut={setInvoiceToPay}
+                />
+            )}
+
+            {invoiceToPay && (
+                <InvoiceModal
+                    invoice={invoiceToPay}
+                    onClose={() => setInvoiceToPay(null)}
                 />
             )}
 

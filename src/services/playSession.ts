@@ -27,16 +27,18 @@ export async function getCurrentPlaySession(tableCode: string): Promise<PlaySess
     return res.data.data
 }
 
-export async function closePlaySession(sessionCode: string): Promise<void> {
-    await http.put<ApiResponse<unknown>>(
-        `/play-session/close/${encodeURIComponent(sessionCode)}`
-    )
-}
-
 export async function getCurrentFee(sessionCode: string): Promise<number> {
     const res = await http.get<ApiResponse<number>>("/play-session/fee", {
         params: { playSessionCode: sessionCode },
     })
 
     return Number(res.data.data)
+}
+
+export async function getPlaySessionByCode(sessionCode: string): Promise<PlaySession> {
+    const res = await http.get<ApiResponse<PlaySession>>(
+        `/play-session/session-code/${encodeURIComponent(sessionCode)}`
+    )
+
+    return res.data.data
 }

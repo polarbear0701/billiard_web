@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react"
 import { formatTableCode, updateTablePrice, type Table } from "../services/table"
 import {
-    closePlaySession,
     getCurrentFee,
     getCurrentPlaySession,
     startPlaySession,
     type PlaySession,
 } from "../services/playSession"
+import { createInvoice, type Invoice } from "../services/invoice"
 import { getErrorMessage } from "../services/http"
+import { formatDateTime } from "../i18n/formatDateTime"
 import { useLanguage } from "../i18n/useLanguage"
 import Modal from "./Modal"
 import SessionMenu from "./SessionMenu"
@@ -18,26 +19,17 @@ interface SessionModalProps {
     onClose: () => void
     onPriceUpdated: (updated: Table) => void
     onSessionChanged: () => void
+    onCheckedOut: (invoice: Invoice) => void
 }
 
 const FEE_REFRESH_MS = 30_000
-
-// Server timestamps carry nanoseconds and no timezone; keep milliseconds so Date can parse them.
-function formatStartTime(value: string, language: string) {
-    const date = new Date(value.replace(/(\.\d{3})\d+/, "$1"))
-    if (Number.isNaN(date.getTime())) return value
-
-    return date.toLocaleString(language === "vi" ? "vi-VN" : "en-GB", {
-        dateStyle: "short",
-        timeStyle: "short",
-    })
-}
 
 export default function SessionModal({
     table,
     onClose,
     onPriceUpdated,
     onSessionChanged,
+    onCheckedOut,
 }: SessionModalProps) {
     const { t, language } = useLanguage()
     const [session, setSession] = useState<PlaySession | null>(null)
@@ -117,11 +109,15 @@ export default function SessionModal({
                 const sessionCode =
                     session?.sessionCode ??
                     (await getCurrentPlaySession(table.tableCode)).sessionCode
-                await closePlaySession(sessionCode)
+
+                // Creating the invoice also closes the session on the server.
+                const invoice = await createInvoice(sessionCode)
+                onSessionChanged()
+                onCheckedOut(invoice)
             } else {
                 await startPlaySession(table.tableCode)
+                onSessionChanged()
             }
-            onSessionChanged()
             close()
         } catch (err) {
             setSessionError(getErrorMessage(err))
@@ -274,7 +270,7 @@ export default function SessionModal({
                                         {t.session.startedAt}
                                     </dt>
                                     <dd className="text-sm font-medium text-slate-900">
-                                        {session ? formatStartTime(session.startTime, language) : "—"}
+                                        {session ? formatDateTime(session.startTime, language) : "—"}
                                     </dd>
                                 </div>
 

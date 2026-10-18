@@ -4,9 +4,10 @@ import { useLanguage } from "../i18n/useLanguage"
 import LanguageToggle from "./LanguageToggle"
 
 const navItems = [
-    { key: "dashboard", to: "/dashboard" },
     { key: "tables", to: "/table" },
+    { key: "invoices", to: "/invoices" },
     { key: "stock", to: "/stock" },
+    { key: "dashboard", to: "/dashboard" },
 ] as const
 
 export default function PageLayout() {
