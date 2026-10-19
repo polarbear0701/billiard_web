@@ -1,4 +1,5 @@
 import { http, type ApiResponse } from "./http"
+import { fetchAllPages, type PageData } from "./pagination"
 
 export interface Product {
     productCode: string
@@ -23,17 +24,17 @@ export interface ProductRequest {
     price: number
 }
 
-// The list endpoint is paginated; the response may be a bare array or a page object.
-type ProductListData = Product[] | { content: Product[] }
-
-const LIST_PAGE_SIZE = 1000
-
+// Loads every page so the stock list and menu cover all products.
 export async function getAllProducts(): Promise<Product[]> {
-    const res = await http.get<ApiResponse<ProductListData>>("/product/all", {
-        params: { page: 0, size: LIST_PAGE_SIZE },
-    })
-    const data = res.data.data
-    return Array.isArray(data) ? data : (data?.content ?? [])
+    return fetchAllPages<Product>(
+        async (page, size) => {
+            const res = await http.get<ApiResponse<PageData<Product>>>("/product/all", {
+                params: { page, size },
+            })
+            return res.data.data
+        },
+        (product) => product.productCode
+    )
 }
 
 export async function createProduct(request: ProductRequest): Promise<void> {

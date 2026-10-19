@@ -1,14 +1,19 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { CreateTableModal, InvoiceModal, SessionModal, TableCard } from "../components"
 import { formatTableCode, getAllTables, type Table, type TableStatus } from "../services/table"
 import { type Invoice } from "../services/invoice"
 import { getErrorMessage } from "../services/http"
 import { useLanguage } from "../i18n/useLanguage"
+import { usePolling } from "../hooks/usePolling"
+
+const TABLE_REFRESH_MS = 20_000
 
 export default function Tables() {
     const { t } = useLanguage()
     const [tables, setTables] = useState<Table[]>([])
-    const [selectedTable, setSelectedTable] = useState<Table | null>(null)
+    // Track the open table by code so the modal follows refreshed data.
+    const [selectedCode, setSelectedCode] = useState<string | null>(null)
+    const hasLoadedRef = useRef(false)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState("")
     const [search, setSearch] = useState("")
@@ -32,8 +37,10 @@ export default function Tables() {
                 )
                 setTables(sortedTables)
                 setError("")
+                hasLoadedRef.current = true
             } catch (err) {
-                if (!isCancelled) setError(getErrorMessage(err))
+                // A failed background refresh keeps the tables already on screen.
+                if (!isCancelled && !hasLoadedRef.current) setError(getErrorMessage(err))
             } finally {
                 if (!isCancelled) setIsLoading(false)
             }
@@ -46,13 +53,16 @@ export default function Tables() {
         }
     }, [reloadKey])
 
+    usePolling(() => setReloadKey((key) => key + 1), TABLE_REFRESH_MS)
+
+    const selectedTable = tables.find((table) => table.tableCode === selectedCode) ?? null
+
     function handlePriceUpdated(updated: Table) {
         setTables((prev) =>
             prev.map((table) =>
                 table.tableCode === updated.tableCode ? updated : table
             )
         )
-        setSelectedTable(updated)
     }
 
     if (isLoading) {
@@ -147,7 +157,7 @@ export default function Tables() {
                         <TableCard
                             key={table.tableCode}
                             tableObject={table}
-                            onClick={() => setSelectedTable(table)}
+                            onClick={() => setSelectedCode(table.tableCode)}
                         />
                     ))}
                 </div>
@@ -156,7 +166,7 @@ export default function Tables() {
             {selectedTable && (
                 <SessionModal
                     table={selectedTable}
-                    onClose={() => setSelectedTable(null)}
+                    onClose={() => setSelectedCode(null)}
                     onPriceUpdated={handlePriceUpdated}
                     onSessionChanged={() => setReloadKey((key) => key + 1)}
                     onCheckedOut={setInvoiceToPay}

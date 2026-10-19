@@ -1,4 +1,5 @@
 import { http, type ApiResponse } from "./http"
+import { fetchAllPages, type PageData } from "./pagination"
 
 export interface Invoice {
     invoiceCode: string
@@ -58,59 +59,19 @@ function toInvoice(raw: RawRecord): Invoice {
     }
 }
 
-// The list endpoint is paginated. A page is either a bare array or a Spring-style page object.
-interface InvoicePage {
-    content: RawRecord[]
-    totalPages?: number
-    totalElements?: number
-    last?: boolean
-}
-
-type InvoiceListData = RawRecord[] | InvoicePage
-
-const FETCH_PAGE_SIZE = 100
-const MAX_PAGES = 100
-
-async function fetchInvoicePage(page: number) {
-    const res = await http.get<ApiResponse<InvoiceListData>>("/invoice/all", {
-        params: { page, size: FETCH_PAGE_SIZE },
-    })
-    const data = res.data.data
-    return {
-        rows: Array.isArray(data) ? data : (data?.content ?? []),
-        info: Array.isArray(data) ? undefined : data,
-    }
-}
-
 // Loads every page so that filtering and totals cover all invoices, not just the first page.
-// The server may cap the page size below what we ask for, so a short page does NOT mean the
-// last page; only the page metadata (or an empty/repeated page) ends the loop.
 export async function getAllInvoices(): Promise<Invoice[]> {
-    const byCode = new Map<string, Invoice>()
+    const rows = await fetchAllPages<RawRecord>(
+        async (page, size) => {
+            const res = await http.get<ApiResponse<PageData<RawRecord>>>("/invoice/all", {
+                params: { page, size },
+            })
+            return res.data.data
+        },
+        (row) => String(row.invoiceCode)
+    )
 
-    for (let page = 0; page < MAX_PAGES; page++) {
-        const { rows, info } = await fetchInvoicePage(page)
-        const sizeBefore = byCode.size
-        for (const row of rows) {
-            const invoice = toInvoice(row)
-            byCode.set(invoice.invoiceCode, invoice)
-        }
-
-        const isLastPage =
-            rows.length === 0 ||
-            byCode.size === sizeBefore || // nothing new: the server ignored the page number
-            (info?.last !== undefined
-                ? info.last
-                : info?.totalPages !== undefined
-                  ? page + 1 >= info.totalPages
-                  : info?.totalElements !== undefined
-                    ? byCode.size >= info.totalElements
-                    : rows.length < FETCH_PAGE_SIZE)
-
-        if (isLastPage) break
-    }
-
-    return [...byCode.values()]
+    return rows.map(toInvoice)
 }
 
 export async function createInvoice(sessionCode: string): Promise<Invoice> {

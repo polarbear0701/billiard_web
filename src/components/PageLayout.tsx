@@ -2,12 +2,17 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
 import { logout } from "../services/auth"
 import { useLanguage } from "../i18n/useLanguage"
 import LanguageToggle from "./LanguageToggle"
+import logo from "../assets/optimized/logo.png"
+import tableIcon from "../assets/optimized/table.png"
+import invoiceIcon from "../assets/optimized/invoice.png"
+import stockIcon from "../assets/optimized/stock.png"
+import dashboardIcon from "../assets/optimized/dashboard.png"
 
 const navItems = [
-    { key: "tables", to: "/table" },
-    { key: "invoices", to: "/invoices" },
-    { key: "stock", to: "/stock" },
-    { key: "dashboard", to: "/dashboard" },
+    { key: "tables", to: "/table", icon: tableIcon },
+    { key: "invoices", to: "/invoices", icon: invoiceIcon },
+    { key: "stock", to: "/stock", icon: stockIcon },
+    { key: "dashboard", to: "/dashboard", icon: dashboardIcon },
 ] as const
 
 export default function PageLayout() {
@@ -48,6 +53,14 @@ export default function PageLayout() {
                         </svg>
                     </label>
 
+                    {current && (
+                        <img
+                            src={current.icon}
+                            alt=""
+                            className="hidden h-11 w-11 sm:block"
+                        />
+                    )}
+
                     <div>
                         <h1 className="text-xl font-semibold text-slate-900">
                             {current ? t.nav[current.key] : t.nav.brand}
@@ -71,9 +84,11 @@ export default function PageLayout() {
                 <label htmlFor="nav-drawer" aria-label={t.nav.closeMenu} className="drawer-overlay" />
 
                 <aside className="flex h-full min-h-screen w-64 flex-col overflow-y-auto border-r border-slate-200 bg-white p-4">
-                    <div className="px-3 py-4 text-xl font-semibold tracking-tight text-emerald-800">
-                        {t.nav.brand}
-                    </div>
+                    <img
+                        src={logo}
+                        alt={t.nav.brand}
+                        className="mx-auto h-20 w-full object-contain"
+                    />
 
                     <p className="mt-4 px-3 text-xs font-medium uppercase tracking-wide text-slate-400">
                         {t.nav.menu}
@@ -86,13 +101,14 @@ export default function PageLayout() {
                                 to={item.to}
                                 onClick={closeDrawer}
                                 className={({ isActive }) =>
-                                    `rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                                    `flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${
                                         isActive
                                             ? "bg-emerald-700 text-white"
                                             : "text-slate-600 hover:bg-slate-100"
                                     }`
                                 }
                             >
+                                <img src={item.icon} alt="" className="h-8 w-8 rounded-lg bg-white p-0.5" />
                                 {t.nav[item.key]}
                             </NavLink>
                         ))}

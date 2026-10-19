@@ -4,6 +4,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { hasActiveSession, login } from "../services/auth";
 import { useLanguage } from "../i18n/useLanguage";
 import LanguageToggle from "../components/LanguageToggle";
+import logo from "../assets/optimized/logo.png";
 import { getErrorMessage } from "../services/http";
 
 export default function LoginPage() {
@@ -44,6 +45,7 @@ export default function LoginPage() {
                     <LanguageToggle />
                 </div>
                 <title>{t.login.title}</title>
+                <img src={logo} alt="Bida 298" className="mb-4 h-24" />
                 <h1 className="font-bold text-xl">{t.login.title}</h1>
                 <InputBox
                     placeholder={t.login.username}
