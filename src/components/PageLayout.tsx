@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
-import { logout } from "../services/auth"
+import { getCurrentUsername, isAdminUser, logout } from "../services/auth"
 import { useLanguage } from "../i18n/useLanguage"
 import LanguageToggle from "./LanguageToggle"
 import logo from "../assets/optimized/logo.png"
@@ -7,19 +7,27 @@ import tableIcon from "../assets/optimized/table.png"
 import invoiceIcon from "../assets/optimized/invoice.png"
 import stockIcon from "../assets/optimized/stock.png"
 import dashboardIcon from "../assets/optimized/dashboard.png"
+import logIcon from "../assets/optimized/log.png"
+
+// Pages only an admin account may open.
+const ADMIN_ONLY = new Set(["dashboard", "audit"])
 
 const navItems = [
     { key: "tables", to: "/table", icon: tableIcon },
     { key: "invoices", to: "/invoices", icon: invoiceIcon },
     { key: "stock", to: "/stock", icon: stockIcon },
     { key: "dashboard", to: "/dashboard", icon: dashboardIcon },
+    { key: "audit", to: "/audit", icon: logIcon },
 ] as const
 
 export default function PageLayout() {
     const navigate = useNavigate()
     const { t } = useLanguage()
     const { pathname } = useLocation()
-    const current = navItems.find((item) => pathname.startsWith(item.to))
+    const isAdmin = isAdminUser()
+    const username = getCurrentUsername()
+    const visibleItems = navItems.filter((item) => isAdmin || !ADMIN_ONLY.has(item.key))
+    const current = visibleItems.find((item) => pathname.startsWith(item.to))
 
     const handleLogout = () => {
         logout()
@@ -53,13 +61,7 @@ export default function PageLayout() {
                         </svg>
                     </label>
 
-                    {current && (
-                        <img
-                            src={current.icon}
-                            alt=""
-                            className="hidden h-11 w-11 sm:block"
-                        />
-                    )}
+                    {current && <img src={current.icon} alt="" className="hidden h-11 w-11 sm:block" />}
 
                     <div>
                         <h1 className="text-xl font-semibold text-slate-900">
@@ -95,7 +97,7 @@ export default function PageLayout() {
                     </p>
 
                     <nav className="mt-2 flex flex-col gap-1">
-                        {navItems.map((item) => (
+                        {visibleItems.map((item) => (
                             <NavLink
                                 key={item.to}
                                 to={item.to}
@@ -115,6 +117,11 @@ export default function PageLayout() {
                     </nav>
 
                     <div className="mt-auto border-t border-slate-200 pt-4">
+                        {username && (
+                            <p className="mb-2 truncate px-3 text-xs text-slate-400">
+                                {t.nav.signedInAs.replace("{name}", username)}
+                            </p>
+                        )}
                         <button
                             type="button"
                             onClick={handleLogout}

@@ -21,3 +21,18 @@ export function minutesBetween(start: string, end: string | null): number | null
     if (!from || !to) return null
     return Math.max(0, Math.round((to.getTime() - from.getTime()) / 60000))
 }
+
+const pad = (n: number) => String(n).padStart(2, "0")
+
+// Moves a server timestamp by whole minutes and writes it back in the server's own
+// local format ("YYYY-MM-DDTHH:mm:ss"), so no timezone conversion is involved.
+export function shiftServerTime(value: string, minutes: number): string | null {
+    const date = parseServerDate(value)
+    if (!date) return null
+
+    date.setMinutes(date.getMinutes() + minutes)
+    return (
+        `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+        `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+    )
+}

@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react"
-import { InvoiceModal } from "../components"
+import { ConfirmModal, InvoiceModal } from "../components"
 import { formatPrice } from "../components/statusStyles"
 import { formatDateTime } from "../i18n/formatDateTime"
 import { useLanguage } from "../i18n/useLanguage"
 import { getErrorMessage } from "../services/http"
-import { getAllInvoices, type Invoice } from "../services/invoice"
+import { isAdminUser } from "../services/auth"
+import { deleteInvoice, getAllInvoices, type Invoice } from "../services/invoice"
 
 type PaidFilter = "ALL" | "UNPAID" | "PAID"
 
@@ -22,6 +23,8 @@ export default function Invoices() {
     const [filter, setFilter] = useState<PaidFilter>("ALL")
     const [page, setPage] = useState(0)
     const [selected, setSelected] = useState<Invoice | null>(null)
+    const [toDelete, setToDelete] = useState<Invoice | null>(null)
+    const isAdmin = isAdminUser()
 
     useEffect(() => {
         let isCancelled = false
@@ -31,12 +34,10 @@ export default function Invoices() {
                 const data = await getAllInvoices()
                 if (isCancelled) return
 
-                // Newest first; fall back to the code when there is no date.
+                // Newest first.
                 setInvoices(
                     [...data].sort((a, b) =>
-                        a.createdAt && b.createdAt
-                            ? b.createdAt.localeCompare(a.createdAt)
-                            : b.invoiceCode.localeCompare(a.invoiceCode, undefined, { numeric: true })
+                        b.createdAt.localeCompare(a.createdAt)
                     )
                 )
                 setError("")
@@ -62,7 +63,7 @@ export default function Invoices() {
         return <p className="p-6 text-error">{error}</p>
     }
 
-    const unpaid = invoices.filter((invoice) => !invoice.isPaid)
+    const unpaid = invoices.filter((invoice) => !invoice.complete)
     const outstanding = unpaid.reduce((sum, invoice) => sum + invoice.totalAmount, 0)
 
     const filterLabel: Record<PaidFilter, string> = {
@@ -73,8 +74,8 @@ export default function Invoices() {
 
     const keyword = search.trim().toLowerCase()
     const visibleInvoices = invoices.filter((invoice) => {
-        if (filter === "PAID" && !invoice.isPaid) return false
-        if (filter === "UNPAID" && invoice.isPaid) return false
+        if (filter === "PAID" && !invoice.complete) return false
+        if (filter === "UNPAID" && invoice.complete) return false
         if (!keyword) return true
         return (
             invoice.invoiceCode.toLowerCase().includes(keyword) ||
@@ -181,7 +182,7 @@ export default function Invoices() {
                                     </td>
 
                                     <td className="hidden px-5 py-4 text-slate-500 sm:table-cell">
-                                        {invoice.createdAt ? formatDateTime(invoice.createdAt, language) : "—"}
+                                        {formatDateTime(invoice.createdAt, language)}
                                     </td>
 
                                     <td className="px-5 py-4 font-medium text-amber-600">
@@ -191,23 +192,39 @@ export default function Invoices() {
                                     <td className="px-5 py-4">
                                         <span
                                             className={`rounded-full px-3 py-1 text-xs font-medium ${
-                                                invoice.isPaid
+                                                invoice.complete
                                                     ? "bg-emerald-50 text-emerald-700"
                                                     : "bg-amber-50 text-amber-700"
                                             }`}
                                         >
-                                            {invoice.isPaid ? t.invoice.status.PAID : t.invoice.status.UNPAID}
+                                            {invoice.complete ? t.invoice.status.PAID : t.invoice.status.UNPAID}
                                         </span>
+                                        {invoice.paidAt && (
+                                            <p className="mt-1 text-xs text-slate-400">
+                                                {formatDateTime(invoice.paidAt, language)}
+                                            </p>
+                                        )}
                                     </td>
 
-                                    <td className="px-5 py-4 text-right">
-                                        <button
-                                            type="button"
-                                            className="text-sm font-medium text-emerald-700 hover:underline"
-                                            onClick={() => setSelected(invoice)}
-                                        >
-                                            {invoice.isPaid ? t.invoices.view : t.invoices.pay}
-                                        </button>
+                                    <td className="px-5 py-4">
+                                        <div className="flex justify-end gap-4 text-sm font-medium">
+                                            <button
+                                                type="button"
+                                                className="text-emerald-700 hover:underline"
+                                                onClick={() => setSelected(invoice)}
+                                            >
+                                                {invoice.complete ? t.invoices.view : t.invoices.pay}
+                                            </button>
+                                            {isAdmin && (
+                                                <button
+                                                    type="button"
+                                                    className="text-rose-600 hover:underline"
+                                                    onClick={() => setToDelete(invoice)}
+                                                >
+                                                    {t.invoices.delete}
+                                                </button>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -249,6 +266,17 @@ export default function Invoices() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {toDelete && (
+                <ConfirmModal
+                    title={t.invoices.deleteTitle}
+                    message={t.invoices.deleteMessage.replace("{code}", toDelete.invoiceCode)}
+                    confirmLabel={t.invoices.deleteConfirm}
+                    onConfirm={() => deleteInvoice(toDelete.invoiceCode)}
+                    onClose={() => setToDelete(null)}
+                    onDone={() => setReloadKey((key) => key + 1)}
+                />
             )}
 
             {selected && (

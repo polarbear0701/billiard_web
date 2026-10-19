@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
-import { formatTableCode, updateTablePrice, type Table } from "../services/table"
+import { formatTableCode, setTableStatus, updateTablePrice, type Table } from "../services/table"
+import { isAdminUser } from "../services/auth"
 import {
+    adjustPlaySessionStartTime,
     getCurrentFee,
     getCurrentPlaySession,
     startPlaySession,
@@ -8,7 +10,7 @@ import {
 } from "../services/playSession"
 import { createInvoice, type Invoice } from "../services/invoice"
 import { getErrorMessage } from "../services/http"
-import { formatDateTime } from "../i18n/formatDateTime"
+import { formatDateTime, shiftServerTime } from "../i18n/formatDateTime"
 import { useLanguage } from "../i18n/useLanguage"
 import Modal from "./Modal"
 import SessionMenu from "./SessionMenu"
@@ -20,9 +22,12 @@ interface SessionModalProps {
     onPriceUpdated: (updated: Table) => void
     onSessionChanged: () => void
     onCheckedOut: (invoice: Invoice) => void
+    onDeleteRequested: (table: Table) => void
 }
 
 const FEE_REFRESH_MS = 30_000
+// Minutes the start time can be moved by; negative means earlier.
+const START_TIME_SHIFTS = [-30, -15, -10, -5, 5]
 
 export default function SessionModal({
     table,
@@ -30,6 +35,7 @@ export default function SessionModal({
     onPriceUpdated,
     onSessionChanged,
     onCheckedOut,
+    onDeleteRequested,
 }: SessionModalProps) {
     const { t, language } = useLanguage()
     const [session, setSession] = useState<PlaySession | null>(null)
@@ -42,7 +48,12 @@ export default function SessionModal({
 
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [sessionError, setSessionError] = useState("")
+    const [isAdjustingStart, setIsAdjustingStart] = useState(false)
+    const [isSavingStart, setIsSavingStart] = useState(false)
+    const [startError, setStartError] = useState("")
 
+    const isAdmin = isAdminUser()
+    const [isChangingStatus, setIsChangingStatus] = useState(false)
     const isOccupied = table.tableStatus === "OCCUPIED"
     const canSubmit = table.tableStatus === "AVAILABLE" || isOccupied
     useEffect(() => {
@@ -99,6 +110,43 @@ export default function SessionModal({
     function cancelEditingPrice() {
         setIsEditingPrice(false)
         setPriceError("")
+    }
+
+    async function shiftStartTime(minutes: number) {
+        if (!session) return
+
+        const startTime = shiftServerTime(session.startTime, minutes)
+        if (!startTime) return
+
+        setIsSavingStart(true)
+        setStartError("")
+        try {
+            await adjustPlaySessionStartTime(session.sessionCode, startTime)
+            setSession({ ...session, startTime })
+            // The fee depends on the start time, so refresh it right away.
+            setFee(await getCurrentFee(session.sessionCode))
+        } catch (err) {
+            setStartError(getErrorMessage(err))
+        } finally {
+            setIsSavingStart(false)
+        }
+    }
+
+    // AVAILABLE <-> MAINTENANCE; the server refuses anything involving an occupied table.
+    async function toggleMaintenance(close: () => void) {
+        setIsChangingStatus(true)
+        setSessionError("")
+        try {
+            await setTableStatus(
+                table.tableCode,
+                table.tableStatus === "MAINTENANCE" ? "AVAILABLE" : "MAINTENANCE"
+            )
+            onSessionChanged()
+            close()
+        } catch (err) {
+            setSessionError(getErrorMessage(err))
+            setIsChangingStatus(false)
+        }
     }
 
     async function submitSession(close: () => void) {
@@ -229,13 +277,15 @@ export default function SessionModal({
                                             <span className="text-base font-semibold text-amber-600">
                                                 {formatPrice(table.pricePerHour)}
                                             </span>
-                                            <button
-                                                type="button"
-                                                className="text-sm font-medium text-emerald-700 hover:underline"
-                                                onClick={startEditingPrice}
+                                            {isAdmin && (
+                                                <button
+                                                    type="button"
+                                                    className="text-sm font-medium text-emerald-700 hover:underline"
+                                                    onClick={startEditingPrice}
                                             >
-                                                {t.session.edit}
-                                            </button>
+                                                    {t.session.edit}
+                                                </button>
+                                            )}
                                         </dd>
                                     )}
                                 </div>
@@ -269,10 +319,42 @@ export default function SessionModal({
                                     <dt className="text-sm text-slate-500">
                                         {t.session.startedAt}
                                     </dt>
-                                    <dd className="text-sm font-medium text-slate-900">
+                                    <dd className="flex items-center gap-3 text-sm font-medium text-slate-900">
                                         {session ? formatDateTime(session.startTime, language) : "—"}
+                                        {session && (
+                                            <button
+                                                type="button"
+                                                className="font-medium text-emerald-700 hover:underline"
+                                                onClick={() => setIsAdjustingStart((open) => !open)}
+                                            >
+                                                {t.session.adjustStart}
+                                            </button>
+                                        )}
                                     </dd>
                                 </div>
+
+                                {isAdjustingStart && (
+                                    <div className="py-3">
+                                        <p className="text-xs text-slate-500">{t.session.adjustStartHint}</p>
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                            {START_TIME_SHIFTS.map((minutes) => (
+                                                <button
+                                                    key={minutes}
+                                                    type="button"
+                                                    disabled={isSavingStart}
+                                                    onClick={() => shiftStartTime(minutes)}
+                                                    className="h-10 rounded-full bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:opacity-50"
+                                                >
+                                                    {minutes < 0 ? "−" : "+"}
+                                                    {t.session.minutes.replace("{n}", String(Math.abs(minutes)))}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        {startError && (
+                                            <p className="mt-2 text-sm text-rose-600">{startError}</p>
+                                        )}
+                                    </div>
+                                )}
 
                                 <div className="flex items-center justify-between py-3">
                                     <dt className="text-sm text-slate-500">
@@ -335,6 +417,34 @@ export default function SessionModal({
                             )}
                         </button>
                     </div>
+
+                    {!isOccupied && (
+                        <div className="mt-4 flex items-center justify-center gap-6 text-sm font-medium">
+                            <button
+                                type="button"
+                                className="text-slate-600 hover:underline disabled:opacity-50"
+                                disabled={isChangingStatus || isSubmitting}
+                                onClick={() => toggleMaintenance(close)}
+                            >
+                                {table.tableStatus === "MAINTENANCE"
+                                    ? t.tables.endMaintenance
+                                    : t.tables.setMaintenance}
+                            </button>
+
+                            {isAdmin && (
+                                <button
+                                    type="button"
+                                    className="text-rose-600 hover:underline"
+                                    onClick={() => {
+                                        onDeleteRequested(table)
+                                        close()
+                                    }}
+                                >
+                                    {t.tables.deleteTable}
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </>
             )}
         </Modal>

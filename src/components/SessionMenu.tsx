@@ -59,8 +59,6 @@ export default function SessionMenu({ sessionCode }: SessionMenuProps) {
     }, [sessionCode])
 
     const productByCode = new Map(products.map((product) => [product.productCode, product]))
-    const unitPriceOf = (item: OrderItem) =>
-        item.unitPrice ?? productByCode.get(item.productCode)?.price ?? 0
 
     const orderedByProduct = new Map<string, number>()
     for (const item of items) {
@@ -71,7 +69,7 @@ export default function SessionMenu({ sessionCode }: SessionMenuProps) {
     }
 
     const orderedTotal = items.reduce(
-        (sum, item) => sum + unitPriceOf(item) * item.quantity,
+        (sum, item) => sum + item.price * item.quantity,
         0
     )
     const draftLines = products
@@ -172,10 +170,10 @@ export default function SessionMenu({ sessionCode }: SessionMenuProps) {
                                 >
                                     <div className="min-w-0">
                                         <p className="truncate text-sm font-medium text-slate-900">
-                                            {product?.name ?? item.productCode}
+                                            {item.productName}
                                         </p>
                                         <p className="text-xs text-slate-500">
-                                            {formatPrice(unitPriceOf(item) * item.quantity)}
+                                            {formatPrice(item.price * item.quantity)}
                                             <button
                                                 type="button"
                                                 className="ml-3 font-medium text-rose-600 hover:underline disabled:opacity-40"

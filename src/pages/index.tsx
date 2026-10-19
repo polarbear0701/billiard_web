@@ -4,3 +4,5 @@ export {default as Tables} from "./Tables"
 export {default as Stock} from "./Stock"
 
 export {default as Invoices} from "./Invoices"
+
+export {default as AuditLog} from "./AuditLog"

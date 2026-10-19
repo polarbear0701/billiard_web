@@ -5,7 +5,9 @@ export type SessionStatus = "ACTIVE" | "COMPLETED" | "CANCELLED"
 export interface PlaySession {
     sessionCode: string
     tableCode: string
+    // ISO date-time without a zone, in the store's timezone
     startTime: string
+    // null while the session is running
     endTime: string | null
     sessionStatus: SessionStatus
 }
@@ -40,5 +42,18 @@ export async function getPlaySessionByCode(sessionCode: string): Promise<PlaySes
         `/play-session/session-code/${encodeURIComponent(sessionCode)}`
     )
 
+    return res.data.data
+}
+
+// `startTime` is a local date-time such as "2026-10-18T18:27:00" (see shiftServerTime).
+// The new start cannot be in the future, and the session must still be running.
+export async function adjustPlaySessionStartTime(
+    sessionCode: string,
+    startTime: string
+): Promise<PlaySession> {
+    const res = await http.put<ApiResponse<PlaySession>>(
+        `/play-session/start-time/${encodeURIComponent(sessionCode)}`,
+        { startTime }
+    )
     return res.data.data
 }

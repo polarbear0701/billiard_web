@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
-import { CreateTableModal, InvoiceModal, SessionModal, TableCard } from "../components"
-import { formatTableCode, getAllTables, type Table, type TableStatus } from "../services/table"
+import { ConfirmModal, CreateTableModal, InvoiceModal, SessionModal, TableCard } from "../components"
+import { deleteTable, formatTableCode, getAllTables, type Table, type TableStatus } from "../services/table"
+import { isAdminUser } from "../services/auth"
 import { type Invoice } from "../services/invoice"
 import { getErrorMessage } from "../services/http"
 import { useLanguage } from "../i18n/useLanguage"
@@ -20,7 +21,9 @@ export default function Tables() {
     const [statusFilter, setStatusFilter] = useState<TableStatus | "ALL">("ALL")
     const [reloadKey, setReloadKey] = useState(0)
     const [isCreating, setIsCreating] = useState(false)
+    const isAdmin = isAdminUser()
     const [invoiceToPay, setInvoiceToPay] = useState<Invoice | null>(null)
+    const [tableToDelete, setTableToDelete] = useState<Table | null>(null)
 
     useEffect(() => {
         let isCancelled = false
@@ -138,13 +141,15 @@ export default function Tables() {
                     <option value="MAINTENANCE">{t.status.MAINTENANCE}</option>
                 </select>
 
-                <button
-                    type="button"
-                    className="btn h-12 rounded-xl border-none bg-emerald-700 text-white shadow-none hover:bg-emerald-800"
-                    onClick={() => setIsCreating(true)}
-                >
-                    {t.tables.addTable}
-                </button>
+                {isAdmin && (
+                    <button
+                        type="button"
+                        className="btn h-12 rounded-xl border-none bg-emerald-700 text-white shadow-none hover:bg-emerald-800"
+                        onClick={() => setIsCreating(true)}
+                    >
+                        {t.tables.addTable}
+                    </button>
+                )}
             </div>
 
             {visibleTables.length === 0 ? (
@@ -170,6 +175,21 @@ export default function Tables() {
                     onPriceUpdated={handlePriceUpdated}
                     onSessionChanged={() => setReloadKey((key) => key + 1)}
                     onCheckedOut={setInvoiceToPay}
+                    onDeleteRequested={setTableToDelete}
+                />
+            )}
+
+            {tableToDelete && (
+                <ConfirmModal
+                    title={t.tables.deleteTitle}
+                    message={t.tables.deleteMessage.replace(
+                        "{name}",
+                        formatTableCode(tableToDelete.tableCode, t.tables.tableLabel)
+                    )}
+                    confirmLabel={t.tables.deleteConfirm}
+                    onConfirm={() => deleteTable(tableToDelete.tableCode)}
+                    onClose={() => setTableToDelete(null)}
+                    onDone={() => setReloadKey((key) => key + 1)}
                 />
             )}
 

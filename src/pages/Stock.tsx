@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { AdjustStockModal, DeleteProductModal, ProductFormModal } from "../components"
 import { formatPrice } from "../components/statusStyles"
 import { useLanguage } from "../i18n/useLanguage"
+import { isAdminUser } from "../services/auth"
 import { getErrorMessage } from "../services/http"
 import { getAllProducts, getStockLevel, type Product, type StockLevel } from "../services/product"
 
@@ -29,6 +30,8 @@ export default function Stock() {
     const [error, setError] = useState("")
     const [reloadKey, setReloadKey] = useState(0)
     const [modal, setModal] = useState<ModalState | null>(null)
+    // Managing products is admin-only; staff can only look at the stock.
+    const isAdmin = isAdminUser()
 
     useEffect(() => {
         let isCancelled = false
@@ -135,13 +138,15 @@ export default function Stock() {
                     <option value="OUT_OF_STOCK">{t.stock.level.OUT_OF_STOCK}</option>
                 </select>
 
-                <button
-                    type="button"
-                    className="btn h-12 rounded-xl border-none bg-emerald-700 text-white shadow-none hover:bg-emerald-800"
-                    onClick={() => setModal({ type: "create" })}
-                >
-                    {t.stock.addProduct}
-                </button>
+                {isAdmin && (
+                    <button
+                        type="button"
+                        className="btn h-12 rounded-xl border-none bg-emerald-700 text-white shadow-none hover:bg-emerald-800"
+                        onClick={() => setModal({ type: "create" })}
+                    >
+                        {t.stock.addProduct}
+                    </button>
+                )}
             </div>
 
             {visibleProducts.length === 0 ? (
@@ -157,7 +162,9 @@ export default function Stock() {
                                 <th className="hidden px-5 py-4 font-medium md:table-cell">{t.stock.code}</th>
                                 <th className="hidden px-5 py-4 font-medium sm:table-cell">{t.stock.price}</th>
                                 <th className="px-5 py-4 font-medium">{t.stock.stock}</th>
-                                <th className="px-5 py-4 text-right font-medium">{t.stock.actions}</th>
+                                {isAdmin && (
+                                    <th className="px-5 py-4 text-right font-medium">{t.stock.actions}</th>
+                                )}
                             </tr>
                         </thead>
 
@@ -203,31 +210,33 @@ export default function Stock() {
                                             </div>
                                         </td>
 
-                                        <td className="px-5 py-4">
-                                            <div className="flex justify-end gap-4 text-sm font-medium">
-                                                <button
-                                                    type="button"
-                                                    className="text-emerald-700 hover:underline"
-                                                    onClick={() => setModal({ type: "adjust", product })}
-                                                >
-                                                    {t.stock.adjust}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="text-slate-500 hover:underline"
-                                                    onClick={() => setModal({ type: "edit", product })}
-                                                >
-                                                    {t.stock.edit}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="text-rose-600 hover:underline"
-                                                    onClick={() => setModal({ type: "delete", product })}
-                                                >
-                                                    {t.stock.delete}
-                                                </button>
-                                            </div>
-                                        </td>
+                                        {isAdmin && (
+                                            <td className="px-5 py-4">
+                                                <div className="flex justify-end gap-4 text-sm font-medium">
+                                                    <button
+                                                        type="button"
+                                                        className="text-emerald-700 hover:underline"
+                                                        onClick={() => setModal({ type: "adjust", product })}
+                                                    >
+                                                        {t.stock.adjust}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="text-slate-500 hover:underline"
+                                                        onClick={() => setModal({ type: "edit", product })}
+                                                    >
+                                                        {t.stock.edit}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="text-rose-600 hover:underline"
+                                                        onClick={() => setModal({ type: "delete", product })}
+                                                    >
+                                                        {t.stock.delete}
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        )}
                                     </tr>
                                 )
                             })}

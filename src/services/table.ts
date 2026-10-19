@@ -43,3 +43,20 @@ export function formatTableCode(code: string, label = "Table"): string {
     const match = /^TBL0*(\d+)$/i.exec(code)
     return match ? `${label} ${match[1]}` : code
 }
+
+export async function deleteTable(tableCode: string): Promise<void> {
+    await http.delete<ApiResponse<unknown>>(`/table/${encodeURIComponent(tableCode)}`)
+}
+
+// Starting and ending a session changes the status by itself, so this is mainly for
+// maintenance. The server rejects setting the same status, MAINTENANCE -> OCCUPIED and
+// OCCUPIED -> MAINTENANCE.
+export async function setTableStatus(
+    tableCode: string,
+    newStatus: TableStatus
+): Promise<Table> {
+    const res = await http.put<ApiResponse<Table>>(
+        `/table/occupy/${encodeURIComponent(tableCode)}/${newStatus}`
+    )
+    return res.data.data
+}

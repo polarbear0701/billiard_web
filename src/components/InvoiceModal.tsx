@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react"
-import { QRCodeSVG } from "qrcode.react"
-import {
-    completeInvoice,
-    getInvoiceQr,
-    type Invoice,
-    type InvoiceQr,
-} from "../services/invoice"
+import { completeInvoice, getInvoiceQr, type Invoice } from "../services/invoice"
 import { getOrderItemsBySession, type OrderItem } from "../services/orderItem"
-import { getAllProducts, type Product } from "../services/product"
 import { getPlaySessionByCode, type PlaySession } from "../services/playSession"
 import { formatTableCode } from "../services/table"
 import { getErrorMessage } from "../services/http"
@@ -27,23 +20,20 @@ interface InvoiceModalProps {
 interface InvoiceDetails {
     session: PlaySession | null
     items: OrderItem[]
-    products: Product[]
     hasError: boolean
 }
 
 // Each piece loads independently, so a missing one doesn't hide the rest of the invoice.
 async function fetchDetails(sessionCode: string): Promise<InvoiceDetails> {
-    const [session, items, products] = await Promise.allSettled([
+    const [session, items] = await Promise.allSettled([
         getPlaySessionByCode(sessionCode),
         getOrderItemsBySession(sessionCode),
-        getAllProducts(),
     ])
 
     return {
         session: session.status === "fulfilled" ? session.value : null,
         items: items.status === "fulfilled" ? items.value : [],
-        products: products.status === "fulfilled" ? products.value : [],
-        hasError: [session, items, products].some((result) => result.status === "rejected"),
+        hasError: [session, items].some((result) => result.status === "rejected"),
     }
 }
 
@@ -68,8 +58,8 @@ function InvoiceContent({
 }) {
     const { t, language } = useLanguage()
     const [details, setDetails] = useState<InvoiceDetails | null>(null)
-    const [qr, setQr] = useState<InvoiceQr | null>(null)
-    const [isQrLoading, setIsQrLoading] = useState(!invoice.isPaid)
+    const [qrUrl, setQrUrl] = useState<string | null>(null)
+    const [isQrLoading, setIsQrLoading] = useState(!invoice.complete)
     const [qrError, setQrError] = useState("")
     const [isCompleting, setIsCompleting] = useState(false)
     const [error, setError] = useState("")
@@ -80,7 +70,7 @@ function InvoiceContent({
         async function loadDetails() {
             const data = invoice.sessionCode
                 ? await fetchDetails(invoice.sessionCode)
-                : { session: null, items: [], products: [], hasError: false }
+                : { session: null, items: [], hasError: false }
             if (!isCancelled) setDetails(data)
         }
 
@@ -92,14 +82,14 @@ function InvoiceContent({
     }, [invoice.sessionCode])
 
     useEffect(() => {
-        if (invoice.isPaid) return
+        if (invoice.complete) return
 
         let isCancelled = false
 
         async function loadQr() {
             try {
-                const data = await getInvoiceQr(invoice.invoiceCode)
-                if (!isCancelled) setQr(data)
+                const url = await getInvoiceQr(invoice.invoiceCode)
+                if (!isCancelled) setQrUrl(url)
             } catch (err) {
                 if (!isCancelled) setQrError(getErrorMessage(err))
             } finally {
@@ -112,7 +102,7 @@ function InvoiceContent({
         return () => {
             isCancelled = true
         }
-    }, [invoice.invoiceCode, invoice.isPaid])
+    }, [invoice.invoiceCode, invoice.complete])
 
     async function markPaid() {
         setIsCompleting(true)
@@ -127,7 +117,6 @@ function InvoiceContent({
         }
     }
 
-    const productByCode = new Map(details?.products.map((p) => [p.productCode, p]))
     const minutes = details?.session
         ? minutesBetween(details.session.startTime, details.session.endTime)
         : null
@@ -154,12 +143,12 @@ function InvoiceContent({
                     </p>
                     <span
                         className={`mt-3 inline-block rounded-full px-3 py-1 text-xs font-medium ${
-                            invoice.isPaid
+                            invoice.complete
                                 ? "bg-emerald-50 text-emerald-700"
                                 : "bg-amber-50 text-amber-700"
                         }`}
                     >
-                        {invoice.isPaid ? t.invoice.status.PAID : t.invoice.status.UNPAID}
+                        {invoice.complete ? t.invoice.status.PAID : t.invoice.status.UNPAID}
                     </span>
                 </div>
 
@@ -172,11 +161,17 @@ function InvoiceContent({
                         <dt className="text-slate-500">{t.invoice.sessionCode}</dt>
                         <dd className="font-medium text-slate-900">{invoice.sessionCode || "—"}</dd>
                     </div>
-                    {invoice.createdAt && (
+                    <div className={rowClass}>
+                        <dt className="text-slate-500">{t.invoice.createdAt}</dt>
+                        <dd className="font-medium text-slate-900">
+                            {formatDateTime(invoice.createdAt, language)}
+                        </dd>
+                    </div>
+                    {invoice.paidAt && (
                         <div className={rowClass}>
-                            <dt className="text-slate-500">{t.invoice.createdAt}</dt>
+                            <dt className="text-slate-500">{t.invoice.paidAt}</dt>
                             <dd className="font-medium text-slate-900">
-                                {formatDateTime(invoice.createdAt, language)}
+                                {formatDateTime(invoice.paidAt, language)}
                             </dd>
                         </div>
                     )}
@@ -248,29 +243,21 @@ function InvoiceContent({
                                 {details.items.length === 0 ? (
                                     <li className="py-3 text-slate-500">{t.invoice.noItems}</li>
                                 ) : (
-                                    details.items.map((item) => {
-                                        const product = productByCode.get(item.productCode)
-                                        const unitPrice = item.unitPrice ?? product?.price ?? 0
-
-                                        return (
-                                            <li
-                                                key={item.orderItemCode || item.productCode}
-                                                className={rowClass}
-                                            >
-                                                <span className="min-w-0 text-slate-900">
-                                                    <span className="block truncate font-medium">
-                                                        {product?.name ?? item.productCode}
-                                                    </span>
-                                                    <span className="text-xs text-slate-500">
-                                                        {item.quantity} × {formatPrice(unitPrice)}
-                                                    </span>
+                                    details.items.map((item) => (
+                                        <li key={item.orderItemCode} className={rowClass}>
+                                            <span className="min-w-0 text-slate-900">
+                                                <span className="block truncate font-medium">
+                                                    {item.productName}
                                                 </span>
-                                                <span className="font-medium text-slate-900">
-                                                    {formatPrice(unitPrice * item.quantity)}
+                                                <span className="text-xs text-slate-500">
+                                                    {item.quantity} × {formatPrice(item.price)}
                                                 </span>
-                                            </li>
-                                        )
-                                    })
+                                            </span>
+                                            <span className="font-medium text-slate-900">
+                                                {formatPrice(item.price * item.quantity)}
+                                            </span>
+                                        </li>
+                                    ))
                                 )}
 
                                 <li className={rowClass}>
@@ -291,7 +278,7 @@ function InvoiceContent({
                 </section>
             </div>
 
-            {invoice.isPaid ? (
+            {invoice.complete ? (
                 <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                     {t.invoice.paidNote}
                 </p>
@@ -304,10 +291,8 @@ function InvoiceContent({
                     <div className="mx-auto mt-3 flex min-h-56 w-56 items-center justify-center rounded-2xl border border-slate-200 bg-white p-3">
                         {isQrLoading ? (
                             <span className="loading loading-dots loading-md text-slate-400" />
-                        ) : qr?.kind === "image" ? (
-                            <img src={qr.src} alt={t.invoice.scanToPay} className="h-full w-full object-contain" />
-                        ) : qr?.kind === "payload" ? (
-                            <QRCodeSVG value={qr.value} size={200} />
+                        ) : qrUrl ? (
+                            <img src={qrUrl} alt={t.invoice.scanToPay} className="h-full w-full object-contain" />
                         ) : (
                             <p className="px-2 text-sm text-slate-500">
                                 {qrError || t.invoice.qrUnavailable}
@@ -323,7 +308,7 @@ function InvoiceContent({
                 </p>
             )}
 
-            <div className={`mt-8 grid gap-4 ${invoice.isPaid ? "" : "grid-cols-2"}`}>
+            <div className={`mt-8 grid gap-4 ${invoice.complete ? "" : "grid-cols-2"}`}>
                 <button
                     type="button"
                     className={secondaryButtonClass}
@@ -333,7 +318,7 @@ function InvoiceContent({
                     {t.common.close}
                 </button>
 
-                {!invoice.isPaid && (
+                {!invoice.complete && (
                     <button
                         type="button"
                         className={primaryButtonClass}
